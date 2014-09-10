@@ -1,0 +1,14 @@
+{
+    "name": "timber/libTimberNestedSets",
+    "version": "1.0",
+    "license": "MIT",
+    "dist": {
+        "url": "ns2:///srv/git/libTimberNestedSets.git",
+        "type": "vcs"
+    },
+    "autoload": {
+        "psr-4": {
+            "Timber\\NestedSets\\": "src/Timber/NestedSets"
+        }
+    }
+}
