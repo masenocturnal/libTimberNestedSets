@@ -3,7 +3,7 @@
     "version": "1.0",
     "license": "MIT",
     "dist": {
-        "url": "ns2:///srv/git/libTimberNestedSets.git",
+        "url": "ns2://srv/git/libTimberNestedSets.git",
         "type": "vcs"
     },
     "autoload": {
