@@ -50,40 +50,39 @@ final class Tree extends Model
     public function getPath($id)
     {
         $sql = 
-        'SELECT parent.category_id
+        'SELECT parent.foreign_id, cat.category_name
         FROM category_hierarchy AS child,
         category_hierarchy AS parent
+        INNER JOIN categories as cat ON parent.foreign_id = cat.id
         WHERE child.lft
         BETWEEN parent.lft
         AND parent.rgt
-        AND child.ch_id = :id
+        AND child.id = :id
         ORDER BY parent.lft';
-        $x = $this->conn->fetchAll($sql, ['id'=>$id]);
-        var_dump($x);
-        exit();
-        return $x;
+        return $this->conn->fetchAll($sql,\PDO::FETCH_ASSOC, ['id'=>$id]);
+        
     }// end get_path
 
-        /**
-         * Returns a path to a given element
-         *
-         * @param int ch_id matches category hierarchy id in the database
-         */
-        public function getPathto( $ch_id )
-        {
-            
-                $query = "SELECT parent.ch_id
-                          FROM category_hierarchy AS child,
-                          category_hierarchy AS parent
-                          WHERE child.lft
-                          BETWEEN parent.lft
-                          AND parent.rgt
-                          AND child.ch_id = ".(int)$ch_id."
-                          AND parent.lft != 1
-                          ORDER BY parent.lft";
-                
-            }
-        }// end get_path
+    /**
+     * Returns a path to a given element
+     *
+     * @param int ch_id matches category hierarchy id in the database
+     */
+    public function getPathTo($ch_id)
+    {
+        
+        $query = "SELECT parent.ch_id
+                    FROM category_hierarchy AS child,
+                    category_hierarchy AS parent
+                    WHERE child.lft
+                    BETWEEN parent.lft
+                    AND parent.rgt
+                    AND child.ch_id = ".(int)$ch_id."
+                    AND parent.lft != 1
+                    ORDER BY parent.lft";
+        
+        
+    }// end get_path
 
 
         /**
@@ -92,7 +91,7 @@ final class Tree extends Model
         */
         public function isLeaf( $id )
         {
-            
+            echo "HERE";
 
         } // end
 
@@ -113,6 +112,7 @@ final class Tree extends Model
          */
         public function getTree()
         {
+            
         } // end get_tree
 
 
