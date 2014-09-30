@@ -3,6 +3,8 @@ namespace Timber\NestedSets;
 
 use \Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Resultset\Simple as ResultSet;
+use Modules\Products\Models\Categories as CategoriesModel;
+
 
 final class Tree extends Model 
 {
@@ -11,12 +13,26 @@ final class Tree extends Model
     
     public $id;
     public $foreign_id;
+    public $tableName = 'category_hierarchy';
     
     
     public function initialize()
     {
-        $this->hasMany('foreign_id', 'categories', 'id');
+  //      $this->hasOne('foreign_id', '\Modules\Products\Models\Categories', 'id');   
+         $this->belongsTo('foreign_id', '\Modules\Products\Models\Categories', 'id', [
+            "foreignKey" => array(
+                "message" => "The part cannot be deleted because other robots are using it"
+            )
+        ]);
         $this->conn = $this->getReadConnection();
+        
+    }
+    
+    
+    
+    public function getSource()
+    {
+        return $this->tableName;
     }
     
     public function setLogger($log)
@@ -49,6 +65,20 @@ final class Tree extends Model
      */
     public function getPath($id)
     {
+        $res = $this->_modelsManager->createBuilder()
+            ->columns('child.foreign_id, child.id, cat.category_name')
+            ->addFrom('Timber\NestedSets\Tree', 'child')
+            ->addFrom('Timber\NestedSets\Tree', 'parent')
+            ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
+            ->where('child.id = :id:', ['id'=>$id])
+            ->andWhere('child.lft BETWEEN parent.lft AND parent.rgt')
+            ->orderBy('parent.lft')
+            ->getQuery()
+            ->execute();
+            
+            
+        return $res;
+  /*
         $sql = 
         'SELECT parent.foreign_id, cat.category_name
         FROM category_hierarchy AS child,
@@ -60,9 +90,10 @@ final class Tree extends Model
         AND child.id = :id
         ORDER BY parent.lft';
         return $this->conn->fetchAll($sql,\PDO::FETCH_ASSOC, ['id'=>$id]);
-        
+        */
     }// end get_path
 
+    
     /**
      * Returns a path to a given element
      *
@@ -85,58 +116,58 @@ final class Tree extends Model
     }// end get_path
 
 
-        /**
-        * Determines if an id is a leaf node or not
-        *
-        */
-        public function isLeaf( $id )
-        {
-            echo "HERE";
+    /**
+    * Determines if an id is a leaf node or not
+    *
+    */
+    public function isLeaf( $id )
+    {
+        echo "HERE";
 
-        } // end
+    } // end
 
-        /**
-         *
-         *
-         *
-         */
-        public function listSubtree($id)
-        {
+    /**
+    *
+    *
+    *
+    */
+    public function listSubtree($id)
+    {
 
-        } //end list tree
+    } //end list tree
 
-        /**
-         *
-         *
-         *
-         */
-        public function getTree()
-        {
-            
-        } // end get_tree
+    /**
+    *
+    *
+    *
+    */
+    public function getTree()
+    {
+        
+    } // end get_tree
 
 
-        /**
-         * Returns the id of the root node
-         * (i.e lft = 1)
-         *
-         * @param none
-         * @return int
-         */
-        public function getRootId()
-        {
-        } // end get_last_id
+    /**
+    * Returns the id of the root node
+    * (i.e lft = 1)
+    *
+    * @param none
+    * @return int
+    */
+    public function getRootId()
+    {
+    } // end get_last_id
 
-        /**
-         * Determines if a given id is a valid id
-         * represented in the database
-         *
-         * @param int id
-         */
-        public function isId($id)
-        {
-            
-        } // end get_last_id
+    /**
+    * Determines if a given id is a valid id
+    * represented in the database
+    *
+    * @param int id
+    */
+    public function isId($id)
+    {
+        
+    } // end get_last_id
 
     public static function findByRawSql($sql, $params=null)
     {
