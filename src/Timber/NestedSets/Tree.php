@@ -72,7 +72,7 @@ final class Tree extends Model
             ->addFrom('Timber\NestedSets\Tree', 'child')
             ->addFrom('Timber\NestedSets\Tree', 'parent')
             ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
-            ->where('child.id = :id:', $params)
+            ->where('child.id = :id:')
             ->andWhere('child.lft BETWEEN parent.lft AND parent.rgt')
             ->orderBy('parent.lft')
             ->getQuery();
