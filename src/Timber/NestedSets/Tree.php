@@ -41,19 +41,12 @@ final class Tree extends Model
         $this->log = $log;
     }
     
-    public function foo()
-    {
-        $this->log->info("Foo");
-    }
-    
     /**
      *
      */
     public function addToTree($fkId, $id)
     {
         $sql = 'call addToTree(:fkId, :id, :tableName)';
-
-        
     }
     
     
@@ -68,7 +61,7 @@ final class Tree extends Model
     {
         $params = ['id' => $id];
         $res = $this->_modelsManager->createBuilder()
-            ->columns('child.foreign_id, child.id, cat.category_name')
+            ->columns('child.foreign_id, parent.id, cat.category_name')
             ->addFrom('Timber\NestedSets\Tree', 'child')
             ->addFrom('Timber\NestedSets\Tree', 'parent')
             ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
@@ -84,6 +77,12 @@ final class Tree extends Model
         return $x;
         
     }
+    
+    public function getPathArray($id)
+    {
+        // @todo just call with mode ResultSet::HYDRATE_ARRAY)
+        return $this->getPath($id)->toArray();
+    }
 
     
     protected function getRawSQLFromBuilder(\Phalcon\Mvc\Model\Query $query)
@@ -91,13 +90,6 @@ final class Tree extends Model
         $dialect = $this->conn->getDialect();
         return $dialect->select($query->parse());
     }
-    
-    protected function getDialect()
-    {
-        
-        
-    }
-    
     
     
     /**
@@ -149,7 +141,31 @@ final class Tree extends Model
     */
     public function getTree()
     {
-        
+    
+          $query = 'SELECT child.ch_id, child.category_id,
+            (COUNT(parent.category_id) - 1) AS depth ,c.category_name
+            FROM category_hierarchy AS child,
+            category_hierarchy AS parent
+            ,categories c
+            WHERE child.lft
+            BETWEEN parent.lft
+            AND parent.rgt
+            AND c.category_id = child.category_id
+            GROUP BY child.ch_id
+            ORDER BY child.lft';
+            
+            $res = $this->_modelsManager->createBuilder()
+            ->columns('child.foreign_id, child.id, cat.category_name')
+            ->addFrom('Timber\NestedSets\Tree', 'child')
+            ->addFrom('Timber\NestedSets\Tree', 'parent')
+            ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
+            ->where('child.id = :id:')
+            ->andWhere('child.lft BETWEEN parent.lft AND parent.rgt')
+            ->orderBy('parent.lft')
+            ->getQuery();
+            
+        $sql = $this->getRawSQLFromBuilder($res);
+
     } // end get_tree
 
 
