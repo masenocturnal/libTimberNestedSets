@@ -72,9 +72,9 @@ final class Tree extends Model
             
         $sql = $this->getRawSQLFromBuilder($res);
         
-        $x = new ObjectResultSet(null, $this, $this->conn->query($sql, $params), null, null,'Module\Products\Path');
-        $x->setHydrateMode(Resultset::HYDRATE_OBJECTS);
-        return $x;
+        $objectResultSet = new ObjectResultSet(null, $this, $this->conn->query($sql, $params), null, null,'Modules\Products\Path');
+        $objectResultSet->setHydrateMode(Resultset::HYDRATE_OBJECTS);
+        return $objectResultSet;
         
     }
     
