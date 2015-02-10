@@ -5,6 +5,7 @@ use \Phalcon\Mvc\Model;
 use Phalcon\Mvc\Model\Resultset\Simple as ResultSet;
 use Modules\Products\Models\Categories as CategoriesModel;
 use \Timber\Model\Resultset\Object as ObjectResultSet;
+use \PDO;
 
 final class Tree extends Model 
 { 
@@ -17,7 +18,7 @@ final class Tree extends Model
     protected $dialect  = null;
     
     
-    public function initialize()
+    public function onConstruct()
     {
   //      $this->hasOne('foreign_id', '\Modules\Products\Models\Categories', 'id');   
          $this->belongsTo('foreign_id', '\Modules\Products\Models\Categories', 'id', [
@@ -25,8 +26,9 @@ final class Tree extends Model
                 "message" => "The part cannot be deleted because other robots are using it"
             ]
         ]);
+        echo "HERE 1";
         $this->conn = $this->getReadConnection();
-        
+
     }
     
     
@@ -87,8 +89,11 @@ final class Tree extends Model
     
     protected function getRawSQLFromBuilder(\Phalcon\Mvc\Model\Query $query)
     {
-        $dialect = $this->conn->getDialect();
-        return $dialect->select($query->parse());
+        if ($this->conn) {
+            $dialect = $this->conn->getDialect();
+            return $dialect->select($query->parse());
+        }
+        throw new \ErrorException('No Connection');
     }
     
     
@@ -129,8 +134,83 @@ final class Tree extends Model
     *
     *
     */
-    public function listSubtree($id)
+    public function getSubtree($id, $depth = null)
     {
+
+/*
+SELECT * FROM (
+SELECT  node.*, (COUNT(parent.foreign_id) - (sub_tree.depth + 1)) AS depth
+FROM category_hierarchy AS node,
+        category_hierarchy AS parent,
+        category_hierarchy AS sub_parent,
+        (
+                SELECT node.*, (COUNT(parent.id) - 1) AS depth
+                FROM category_hierarchy AS node,
+                     category_hierarchy AS parent
+                WHERE node.lft BETWEEN parent.lft AND parent.rgt
+                AND node.id = @id
+                GROUP BY node.id
+                ORDER BY node.lft
+        )AS sub_tree
+WHERE node.lft BETWEEN parent.lft AND parent.rgt
+AND node.lft BETWEEN sub_parent.lft AND sub_parent.rgt
+AND sub_parent.id = sub_tree.id
+
+GROUP BY node.id
+HAVING depth = 1
+ORDER BY node.lft
+) as ch
+INNER JOIN categories on categories.id = ch.foreign_id
+ORDER BY category_name;
+    */
+/*
+            $res = $this->_modelsManager->createBuilder()
+            ->columns('
+                parent.foreign_id,
+                parent.id,
+                cat.category_name,
+                (COUNT(parent.foreign_id) - 1) AS depth
+            ')
+            ->addFrom('Timber\NestedSets\Tree', 'parent')
+            ->addFrom('Timber\NestedSets\Tree', 'child')
+            ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
+            ->where('child.id = :id:')
+            ->andWhere('child.lft BETWEEN parent.lft AND parent.rgt')
+            ->orderBy('child.lft')
+            ->getQuery();*/
+
+//         $sql = $this->getRawSQLFromBuilder($res);
+        $sql = 'SELECT * FROM (
+SELECT  node.*, (COUNT(parent.foreign_id) - (sub_tree.depth + 1)) AS depth
+FROM category_hierarchy AS node,
+        category_hierarchy AS parent,
+        category_hierarchy AS sub_parent,
+        (
+                SELECT node.*, (COUNT(parent.id) - 1) AS depth
+                FROM category_hierarchy AS node,
+                     category_hierarchy AS parent
+                WHERE node.lft BETWEEN parent.lft AND parent.rgt
+                AND node.id = :id
+                GROUP BY node.id
+                ORDER BY node.lft
+        ) AS sub_tree
+ WHERE node.lft BETWEEN parent.lft AND parent.rgt
+ AND node.lft BETWEEN sub_parent.lft AND sub_parent.rgt AND sub_parent.id = sub_tree.id GROUP BY node.id HAVING depth = 1  ORDER BY node.lft
+) as ch
+INNER JOIN categories on categories.id = ch.foreign_id
+ORDER BY category_name;';
+        $params = [
+            'id'    => $id,
+//             'depth' => 1
+        ];
+        $types = [
+            'id'    => PDO::PARAM_INT,
+//             'depth' => PDO::PARAM_INT
+        ];
+        // @todo abstract this step
+        $objectResultSet = new ObjectResultSet(null, $this, $this->conn->query($sql, $params, $types), null, null,'Modules\Products\Category');
+        $objectResultSet->setHydrateMode(Resultset::HYDRATE_OBJECTS);
+        return $objectResultSet;
 
     } //end list tree
 
@@ -141,6 +221,7 @@ final class Tree extends Model
     */
     public function getTree()
     {
+            /*
     
           $query = 'SELECT child.ch_id, child.category_id,
             (COUNT(parent.category_id) - 1) AS depth ,c.category_name
@@ -152,10 +233,15 @@ final class Tree extends Model
             AND parent.rgt
             AND c.category_id = child.category_id
             GROUP BY child.ch_id
-            ORDER BY child.lft';
+            ORDER BY child.lft';*/
             
             $res = $this->_modelsManager->createBuilder()
-            ->columns('child.foreign_id, child.id, cat.category_name')
+            ->columns('
+                child.foreign_id,
+                child.id,
+                cat.category_name,
+                (COUNT(parent.category_id) - 1) AS depth
+            ')
             ->addFrom('Timber\NestedSets\Tree', 'child')
             ->addFrom('Timber\NestedSets\Tree', 'parent')
             ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
