@@ -26,7 +26,6 @@ final class Tree extends Model
                 "message" => "The part cannot be deleted because other robots are using it"
             ]
         ]);
-        echo "HERE 1";
         $this->conn = $this->getReadConnection();
 
     }
@@ -137,75 +136,39 @@ final class Tree extends Model
     public function getSubtree($id, $depth = null)
     {
 
-/*
-SELECT * FROM (
-SELECT  node.*, (COUNT(parent.foreign_id) - (sub_tree.depth + 1)) AS depth
-FROM category_hierarchy AS node,
-        category_hierarchy AS parent,
-        category_hierarchy AS sub_parent,
-        (
-                SELECT node.*, (COUNT(parent.id) - 1) AS depth
-                FROM category_hierarchy AS node,
-                     category_hierarchy AS parent
-                WHERE node.lft BETWEEN parent.lft AND parent.rgt
-                AND node.id = @id
-                GROUP BY node.id
-                ORDER BY node.lft
-        )AS sub_tree
-WHERE node.lft BETWEEN parent.lft AND parent.rgt
-AND node.lft BETWEEN sub_parent.lft AND sub_parent.rgt
-AND sub_parent.id = sub_tree.id
-
-GROUP BY node.id
-HAVING depth = 1
-ORDER BY node.lft
-) as ch
-INNER JOIN categories on categories.id = ch.foreign_id
-ORDER BY category_name;
-    */
-/*
-            $res = $this->_modelsManager->createBuilder()
-            ->columns('
-                parent.foreign_id,
-                parent.id,
-                cat.category_name,
-                (COUNT(parent.foreign_id) - 1) AS depth
-            ')
-            ->addFrom('Timber\NestedSets\Tree', 'parent')
-            ->addFrom('Timber\NestedSets\Tree', 'child')
-            ->join('\Modules\Products\Models\Categories', 'parent.foreign_id = cat.id', 'cat')
-            ->where('child.id = :id:')
-            ->andWhere('child.lft BETWEEN parent.lft AND parent.rgt')
-            ->orderBy('child.lft')
-            ->getQuery();*/
-
-//         $sql = $this->getRawSQLFromBuilder($res);
-        $sql = 'SELECT * FROM (
-SELECT  node.*, (COUNT(parent.foreign_id) - (sub_tree.depth + 1)) AS depth
-FROM category_hierarchy AS node,
-        category_hierarchy AS parent,
-        category_hierarchy AS sub_parent,
-        (
-                SELECT node.*, (COUNT(parent.id) - 1) AS depth
-                FROM category_hierarchy AS node,
-                     category_hierarchy AS parent
-                WHERE node.lft BETWEEN parent.lft AND parent.rgt
-                AND node.id = :id
-                GROUP BY node.id
-                ORDER BY node.lft
-        ) AS sub_tree
- WHERE node.lft BETWEEN parent.lft AND parent.rgt
- AND node.lft BETWEEN sub_parent.lft AND sub_parent.rgt AND sub_parent.id = sub_tree.id GROUP BY node.id HAVING depth = 1  ORDER BY node.lft
-) as ch
-INNER JOIN categories on categories.id = ch.foreign_id
-ORDER BY category_name;';
+        $sql = 'SELECT * FROM 
+                (
+                    SELECT  node.foreign_id, 
+                    node.id as ch_id,(COUNT(parent.foreign_id) - (sub_tree.depth + 1)) AS depth
+                    FROM category_hierarchy AS node,
+                    category_hierarchy AS parent,
+                    category_hierarchy AS sub_parent,
+                    (
+                            SELECT node.*, (COUNT(parent.id) - 1) AS depth
+                            FROM category_hierarchy AS node,
+                                category_hierarchy AS parent
+                            WHERE node.lft BETWEEN parent.lft AND parent.rgt
+                            AND node.id = :id
+                            GROUP BY node.id
+                            ORDER BY node.lft
+                    ) AS sub_tree
+                    WHERE node.lft 
+                    BETWEEN parent.lft 
+                    AND parent.rgt
+                    AND node.lft BETWEEN sub_parent.lft 
+                    AND sub_parent.rgt 
+                    AND sub_parent.id = sub_tree.id GROUP BY node.id 
+                    HAVING depth = :depth  ORDER BY node.lft
+                ) as ch
+                INNER JOIN categories on categories.id = ch.foreign_id
+                ORDER BY category_name;';
         $params = [
             'id'    => $id,
-//             'depth' => 1
+            'depth' => 1
         ];
         $types = [
             'id'    => PDO::PARAM_INT,
-//             'depth' => PDO::PARAM_INT
+            'depth' => PDO::PARAM_INT
         ];
         // @todo abstract this step
         $objectResultSet = new ObjectResultSet(null, $this, $this->conn->query($sql, $params, $types), null, null,'Modules\Products\Category');
