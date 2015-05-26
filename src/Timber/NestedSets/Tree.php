@@ -6,6 +6,8 @@ use Phalcon\Mvc\Model\Resultset\Simple as ResultSet;
 use Modules\Products\Models\Categories as CategoriesModel;
 use \Timber\Model\Resultset\Object as ObjectResultSet;
 use \PDO;
+use \Modules\Products\Entities\CategoryCollection;
+use \Modules\Products\Entities\PathCollection;
 
 final class Tree extends Model 
 { 
@@ -73,16 +75,11 @@ final class Tree extends Model
             
         $sql = $this->getRawSQLFromBuilder($res);
         
-        $objectResultSet = new ObjectResultSet(null, $this, $this->conn->query($sql, $params), null, null,'Modules\Products\Path');
-        $objectResultSet->setHydrateMode(Resultset::HYDRATE_OBJECTS);
-        return $objectResultSet;
+        $objectResultSet = new ResultSet(null, $this, $this->conn->query($sql, $params), null, null);
+        $objectResultSet->setHydrateMode(ResultSet::HYDRATE_ARRAYS);
         
-    }
-    
-    public function getPathArray($id)
-    {
-        // @todo just call with mode ResultSet::HYDRATE_ARRAY)
-        return $this->getPath($id)->toArray();
+        return new PathCollection($objectResultSet);
+        
     }
 
     
@@ -113,8 +110,6 @@ final class Tree extends Model
             AND child.ch_id = ".(int)$ch_id."
             AND parent.lft != 1
             ORDER BY parent.lft";
-    
-        
     }// end get_path
 
 
@@ -129,13 +124,16 @@ final class Tree extends Model
     } // end
 
     /**
-    *
-    *
-    *
-    */
+     * Returns a subtree of a tree
+     * 
+     * @param int $id    Unique id of the tree
+     * @param int $depth levels of the subtree to return
+     */
     public function getSubtree($id, $depth = null)
     {
 
+        $depth = $depth ?: 1;
+        
         $sql = 'SELECT * FROM 
                 (
                     SELECT  node.foreign_id, 
@@ -158,7 +156,8 @@ final class Tree extends Model
                     AND node.lft BETWEEN sub_parent.lft 
                     AND sub_parent.rgt 
                     AND sub_parent.id = sub_tree.id GROUP BY node.id 
-                    HAVING depth = :depth  ORDER BY node.lft
+                    HAVING depth = :depth  
+                    ORDER BY node.lft
                 ) as ch
                 INNER JOIN categories on categories.id = ch.foreign_id
                 ORDER BY category_name;';
@@ -171,10 +170,16 @@ final class Tree extends Model
             'depth' => PDO::PARAM_INT
         ];
         // @todo abstract this step
-        $objectResultSet = new ObjectResultSet(null, $this, $this->conn->query($sql, $params, $types), null, null,'Modules\Products\Category');
-        $objectResultSet->setHydrateMode(Resultset::HYDRATE_OBJECTS);
-        return $objectResultSet;
-
+        $objectResultSet = new ResultSet(
+            null, 
+            $this, 
+            $this->conn->query($sql, $params, $types), 
+            null, 
+            null
+        );
+        $objectResultSet->setHydrateMode(ResultSet::HYDRATE_ARRAYS);
+        
+        return new CategoryCollection($objectResultSet);
     } //end list tree
 
     /**
