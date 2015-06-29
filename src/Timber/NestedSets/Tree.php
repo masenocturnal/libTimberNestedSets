@@ -31,9 +31,7 @@ final class Tree extends Model
         $this->conn = $this->getReadConnection();
 
     }
-    
-    
-    
+
     public function getSource()
     {
         return $this->tableName;
@@ -51,8 +49,6 @@ final class Tree extends Model
     {
         $sql = 'call addToTree(:fkId, :id, :tableName)';
     }
-    
-    
 
     /**
      * Returns a category_id path to a given element
@@ -189,20 +185,6 @@ final class Tree extends Model
     */
     public function getTree()
     {
-            /*
-    
-          $query = 'SELECT child.ch_id, child.category_id,
-            (COUNT(parent.category_id) - 1) AS depth ,c.category_name
-            FROM category_hierarchy AS child,
-            category_hierarchy AS parent
-            ,categories c
-            WHERE child.lft
-            BETWEEN parent.lft
-            AND parent.rgt
-            AND c.category_id = child.category_id
-            GROUP BY child.ch_id
-            ORDER BY child.lft';*/
-            
             $res = $this->_modelsManager->createBuilder()
             ->columns('
                 child.foreign_id,
@@ -230,8 +212,12 @@ final class Tree extends Model
     * @param none
     * @return int
     */
-    public function getRootId()
+    public function getRoot()
     {
+        $x = $this->findFirst([
+            'conditions' => 'lft=1'
+        ]);
+        return $x;
     } // end get_last_id
 
     /**
