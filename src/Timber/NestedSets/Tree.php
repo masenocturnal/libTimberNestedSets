@@ -17,12 +17,14 @@ final class Tree extends Model
     public $id;
     public $foreign_id;
     public $tableName   = 'category_hierarchy';
+    public $lft         = null;
+    public $rgt         = null;
     protected $dialect  = null;
     
     
     public function onConstruct()
     {
-  //      $this->hasOne('foreign_id', '\Modules\Products\Models\Categories', 'id');   
+         // $this->hasOne('foreign_id', '\Modules\Products\Models\Categories', 'id');   
          $this->belongsTo('foreign_id', '\Modules\Products\Models\Categories', 'id', [
             "foreignKey" => [
                 "message" => "The part cannot be deleted because other robots are using it"
